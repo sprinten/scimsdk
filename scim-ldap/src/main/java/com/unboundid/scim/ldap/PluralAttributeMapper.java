@@ -1,0 +1,420 @@
+/*
+ * Copyright 2011 UnboundID Corp.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License (GPLv2 only)
+ * or the terms of the GNU Lesser General Public License (LGPLv2.1 only)
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, see <http://www.gnu.org/licenses>.
+ */
+
+package com.unboundid.scim.ldap;
+
+import com.unboundid.asn1.ASN1OctetString;
+import com.unboundid.ldap.sdk.Attribute;
+import com.unboundid.ldap.sdk.Entry;
+import com.unboundid.ldap.sdk.Filter;
+import com.unboundid.scim.schema.AttributeDescriptor;
+import com.unboundid.scim.sdk.InvalidResourceException;
+import com.unboundid.scim.sdk.SCIMAttribute;
+import com.unboundid.scim.sdk.SCIMAttributeValue;
+import com.unboundid.scim.sdk.SCIMObject;
+import com.unboundid.scim.sdk.SCIMFilter;
+import com.unboundid.scim.sdk.SCIMFilterType;
+import com.unboundid.scim.sdk.SimpleValue;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+
+
+/**
+ * This class provides an attribute mapper for plural attributes.
+ * Each type of value (e.g. "work", "home") is mapped to one or more
+ * single-valued LDAP attributes, where each LDAP attribute holds one
+ * of the SCIM sub-attributes.
+ */
+public class PluralAttributeMapper extends AttributeMapper
+{
+  /**
+   * A set of value mappers for each value of the "type" sub-attribute.
+   */
+  private final Map<String,PluralValueMapper> valueMappers;
+
+  /**
+   * The set of LDAP attributes that are mapped by this attribute mapper.
+   */
+  private final Set<String> ldapAttributeTypes;
+
+
+
+  /**
+   * Create a new instance of a complex attribute mapper.
+   *
+   * @param attributeDescriptor  The SCIM attribute type that is mapped by this
+   *                             attribute mapper.
+   * @param pluralMappers      The set of complex value mappers for this
+   *                           attribute mapper.
+   */
+  public PluralAttributeMapper(
+      final AttributeDescriptor attributeDescriptor,
+      final Collection<PluralValueMapper> pluralMappers)
+  {
+    super(attributeDescriptor);
+
+    ldapAttributeTypes = new HashSet<String>();
+    valueMappers = new HashMap<String, PluralValueMapper>();
+    for (final PluralValueMapper pluralMapper : pluralMappers)
+    {
+      valueMappers.put(pluralMapper.getTypeValue(), pluralMapper);
+      for (final SubAttributeTransformation sat :
+          pluralMapper.getTransformations())
+      {
+        ldapAttributeTypes.add(
+            sat.getAttributeTransformation().getLdapAttribute());
+      }
+    }
+  }
+
+
+
+  @Override
+  public Set<String> getLDAPAttributeTypes()
+  {
+    return ldapAttributeTypes;
+  }
+
+
+
+  @Override
+  public Filter toLDAPFilter(final SCIMFilter filter)
+  {
+    final SCIMFilterType type = filter.getFilterType();
+
+    List<String> ldapFilterTypes = null;
+    List<String> ldapFilterValues = null;
+
+    if(type != SCIMFilterType.AND && type != SCIMFilterType.OR)
+    {
+      String subAttributeName =
+        filter.getFilterAttribute().getSubAttributeName();
+      if (subAttributeName == null)
+      {
+        subAttributeName = "value";
+      }
+
+      final List<SubAttributeTransformation> selectedTransformations =
+          new ArrayList<SubAttributeTransformation>();
+      for (final PluralValueMapper pluralValueMapper : valueMappers.values())
+      {
+        for (final SubAttributeTransformation sat :
+            pluralValueMapper.getTransformations())
+        {
+          if (sat.getSubAttribute().equalsIgnoreCase(subAttributeName))
+          {
+            selectedTransformations.add(sat);
+          }
+        }
+      }
+
+      if (selectedTransformations.isEmpty())
+      {
+        return Filter.createORFilter(); //match nothing
+      }
+
+      ldapFilterTypes = new ArrayList<String>(selectedTransformations.size());
+      ldapFilterValues = new ArrayList<String>(selectedTransformations.size());
+
+      for (final SubAttributeTransformation sat : selectedTransformations)
+      {
+        final AttributeTransformation at = sat.getAttributeTransformation();
+        final String filterValue;
+        if (filter.getFilterValue() != null)
+        {
+          filterValue = at.getTransformation().toLDAPFilterValue(
+              filter.getFilterValue());
+        }
+        else
+        {
+          filterValue = null;
+        }
+
+        ldapFilterTypes.add(at.getLdapAttribute());
+        ldapFilterValues.add(filterValue);
+      }
+    }
+    else
+    {
+      final List<SCIMFilter> components = filter.getFilterComponents();
+      final List<Filter> ldapComponents = new ArrayList<Filter>();
+      switch(type)
+      {
+        case AND:
+          for(SCIMFilter component : components)
+          {
+            Filter f = toLDAPFilter(component);
+            ldapComponents.add(f);
+          }
+          return Filter.createANDFilter(ldapComponents);
+        case OR:
+          for(SCIMFilter component : components)
+          {
+            Filter f = toLDAPFilter(component);
+            ldapComponents.add(f);
+          }
+          return Filter.createORFilter(ldapComponents);
+        default:
+          throw new RuntimeException("Invalid filter type: " + type);
+      }
+    }
+
+    final List<Filter> filterComponents =
+        new ArrayList<Filter>(ldapFilterTypes.size());
+    for (int i = 0; i < ldapFilterTypes.size(); i++)
+    {
+      final String ldapAttributeType = ldapFilterTypes.get(i);
+      final String ldapFilterValue = ldapFilterValues.get(i);
+
+      switch (type)
+      {
+        case EQUALITY:
+        {
+          filterComponents.add(
+              Filter.createEqualityFilter(ldapAttributeType,
+                                          ldapFilterValue));
+        }
+        break;
+
+        case CONTAINS:
+        {
+          filterComponents.add(
+              Filter.createSubstringFilter(ldapAttributeType,
+                                           null,
+                                           new String[] { ldapFilterValue },
+                                           null));
+        }
+        break;
+
+        case STARTS_WITH:
+        {
+          filterComponents.add(
+              Filter.createSubstringFilter(ldapAttributeType,
+                                           ldapFilterValue,
+                                           null,
+                                           null));
+        }
+        break;
+
+        case PRESENCE:
+        {
+          filterComponents.add(Filter.createPresenceFilter(ldapAttributeType));
+        }
+        break;
+
+        case GREATER_THAN:
+        case GREATER_OR_EQUAL:
+        {
+          return Filter.createGreaterOrEqualFilter(ldapAttributeType,
+                                                   ldapFilterValue);
+        }
+
+        case LESS_THAN:
+        case LESS_OR_EQUAL:
+        {
+          return Filter.createLessOrEqualFilter(ldapAttributeType,
+                                                ldapFilterValue);
+        }
+
+        default:
+          throw new RuntimeException(
+              "Filter type " + type + " is not supported");
+      }
+    }
+
+    if (filterComponents.size() == 1)
+    {
+      return filterComponents.get(0);
+    }
+    else
+    {
+      return Filter.createORFilter(filterComponents);
+    }
+  }
+
+
+
+  @Override
+  public String toLDAPSortAttributeType()
+  {
+    return null;
+  }
+
+
+
+  @Override
+  public void toLDAPAttributes(final SCIMObject scimObject,
+                               final Collection<Attribute> attributes)
+      throws InvalidResourceException {
+    final SCIMAttribute scimAttribute =
+        scimObject.getAttribute(getAttributeDescriptor().getSchema(),
+                                getAttributeDescriptor().getName());
+    if (scimAttribute != null)
+    {
+      for (SCIMAttributeValue v : scimAttribute.getPluralValues())
+      {
+        final SCIMAttribute typeAttr = v.getAttribute("type");
+        PluralValueMapper pluralValueMapper = null;
+        if (typeAttr != null)
+        {
+          final String type = typeAttr.getSingularValue().getStringValue();
+
+          pluralValueMapper = valueMappers.get(type);
+        }
+
+        // Check for a default mapper.
+        if (pluralValueMapper == null)
+        {
+          pluralValueMapper = valueMappers.get(null);
+        }
+
+        if (pluralValueMapper != null)
+        {
+          for (final SubAttributeTransformation sat :
+              pluralValueMapper.getTransformations())
+          {
+            final AttributeTransformation at = sat.getAttributeTransformation();
+            final String scimType = sat.getSubAttribute();
+            final String ldapType = at.getLdapAttribute();
+
+            final SCIMAttribute subAttribute = v.getAttribute(scimType);
+            if (subAttribute != null)
+            {
+              final AttributeDescriptor subDescriptor =
+                  getAttributeDescriptor().getSubAttribute(scimType);
+              final ASN1OctetString value = at.getTransformation().toLDAPValue(
+                  subDescriptor, subAttribute.getSingularValue().getValue());
+              attributes.add(new Attribute(ldapType, value));
+            }
+          }
+        }
+      }
+
+    }
+  }
+
+
+
+  @Override
+  public SCIMAttribute toSCIMAttribute(final Entry entry)
+      throws InvalidResourceException {
+    final List<SCIMAttributeValue> values = new ArrayList<SCIMAttributeValue>();
+    for (final PluralValueMapper pluralValueMapper : valueMappers.values())
+    {
+      if (pluralValueMapper.getTypeValue() != null)
+      {
+        final List<SCIMAttribute> subAttributes =
+            new ArrayList<SCIMAttribute>();
+
+        for (final SubAttributeTransformation sat :
+            pluralValueMapper.getTransformations())
+        {
+          final AttributeTransformation at = sat.getAttributeTransformation();
+          final String scimType = sat.getSubAttribute();
+          final String ldapType = at.getLdapAttribute();
+
+          final AttributeDescriptor subDescriptor =
+              getAttributeDescriptor().getSubAttribute(scimType);
+          final Attribute a = entry.getAttribute(ldapType);
+          if (a != null)
+          {
+            final ASN1OctetString[] rawValues = a.getRawValues();
+            if (rawValues.length > 0)
+            {
+              final SimpleValue simpleValue =
+                  at.getTransformation().toSCIMValue(subDescriptor,
+                                                     rawValues[0]);
+              subAttributes.add(
+                  SCIMAttribute.createSingularAttribute(
+                      subDescriptor, new SCIMAttributeValue(simpleValue)));
+            }
+          }
+        }
+
+        if (!subAttributes.isEmpty())
+        {
+          if (pluralValueMapper.getTypeValue() != null)
+          {
+            subAttributes.add(SCIMAttribute.createSingularAttribute(
+                getAttributeDescriptor().getSubAttribute("type"),
+                SCIMAttributeValue.createStringValue(
+                    pluralValueMapper.getTypeValue())));
+          }
+
+          final SCIMAttributeValue complexValue =
+              SCIMAttributeValue.createComplexValue(subAttributes);
+
+          values.add(complexValue);
+        }
+      }
+      else
+      {
+        if (pluralValueMapper.getTransformations().size() > 0)
+        {
+          final SubAttributeTransformation sat =
+              pluralValueMapper.getTransformations().iterator().next();
+
+          final AttributeTransformation at = sat.getAttributeTransformation();
+          final String scimType = sat.getSubAttribute();
+          final String ldapType = at.getLdapAttribute();
+          final Attribute a = entry.getAttribute(ldapType);
+          if (a != null)
+          {
+            for (final ASN1OctetString v : a.getRawValues())
+            {
+              final List<SCIMAttribute> subAttributes =
+                  new ArrayList<SCIMAttribute>();
+
+              final AttributeDescriptor subDescriptor =
+                  getAttributeDescriptor().getSubAttribute(scimType);
+              final SimpleValue simpleValue =
+                  at.getTransformation().toSCIMValue(subDescriptor, v);
+
+              final SCIMAttributeValue scimValue =
+                  new SCIMAttributeValue(simpleValue);
+              subAttributes.add(SCIMAttribute.createSingularAttribute(
+                  subDescriptor, scimValue));
+
+              final SCIMAttributeValue complexValue =
+                  SCIMAttributeValue.createComplexValue(subAttributes);
+
+              values.add(complexValue);
+            }
+          }
+        }
+      }
+    }
+
+    if (values.isEmpty())
+    {
+      return null;
+    }
+    else
+    {
+      return SCIMAttribute.createPluralAttribute(
+          getAttributeDescriptor(),
+          values.toArray(new SCIMAttributeValue[values.size()]));
+    }
+  }
+}
