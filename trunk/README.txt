@@ -24,7 +24,7 @@ To build this software, run:
 
   $> mvn install
 
-After building, the SCIM SDK can be found under scim-core/target and the
+After building, the SCIM SDK can be found under scim-sdk/target and the
 SCIM Reference Implementation can be found under scim-ri/target. Documentation
 for each respective component will be generated with the packaged artifacts.
 
