@@ -18,7 +18,7 @@
 Prerequisites:
 
  * Java Development Kit 6.0, Standard Edition
- * Apache Maven 2.2.1 or higher
+ * Apache Maven 3.0.3 or higher
  
 To build this software, run:
 
