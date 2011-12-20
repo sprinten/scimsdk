@@ -1,0 +1,3 @@
+= Documentation =
+
+Complete documentation, user guide, et al is in the works and should be published shortly after the new year.
