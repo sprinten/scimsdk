@@ -1,5 +1,5 @@
 <!--
-  Copyright 2011 UnboundID Corp.
+  Copyright 2011-2012 UnboundID Corp.
   
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License (GPLv2 only)
@@ -21,6 +21,7 @@
     <packaging>pom</packaging>
     <name>UnboundID SCIM SDK Parent</name>
     <version>1.0.0-SNAPSHOT</version>
+    <inceptionYear>2011</inceptionYear>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
