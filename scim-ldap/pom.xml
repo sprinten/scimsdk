@@ -1,5 +1,5 @@
 <!--
-  Copyright 2011 UnboundID Corp.
+  Copyright 2011-2012 UnboundID Corp.
   
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License (GPLv2 only)
@@ -56,6 +56,7 @@
                     <schemaDirectory>${main.basedir}/resource</schemaDirectory>
                     <schemaFiles>resources.xsd</schemaFiles>
                     <outputDirectory>${project.build.genSourceDirectory}/jaxb2</outputDirectory>
+                    <npa>true</npa>
                 </configuration>
             </plugin>
             <plugin>
