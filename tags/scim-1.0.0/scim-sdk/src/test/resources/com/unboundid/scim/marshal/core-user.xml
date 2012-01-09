@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<!--
+  ~ Copyright 2011-2012 UnboundID Corp.
+  ~
+  ~ This program is free software; you can redistribute it and/or modify
+  ~ it under the terms of the GNU General Public License (GPLv2 only)
+  ~ or the terms of the GNU Lesser General Public License (LGPLv2.1 only)
+  ~ as published by the Free Software Foundation.
+  ~
+  ~ This program is distributed in the hope that it will be useful,
+  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~ GNU General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU General Public License
+  ~ along with this program; if not, see <http://www.gnu.org/licenses>.
+  -->
+
+<scim:User xmlns:scim="urn:scim:schemas:core:1.0"
+           xmlns:enterprise="urn:scim:schemas:extension:enterprise:1.0">
+
+  <id>uid=user.0,ou=People,dc=example,dc=com</id>
+  <userName>user.0</userName>
+  <name>
+    <formatted>Aaren Atp</formatted>
+    <familyName>Atp</familyName>
+    <givenName>Aaren</givenName>
+  </name>
+  <emails>
+    <email>
+      <value>user.0@example.com</value>
+      <primary>false</primary>
+      <type>work</type>
+    </email>
+  </emails>
+  <phoneNumbers>
+    <phoneNumber>
+      <value>+1 319 805 3070</value>
+      <primary>false</primary>
+      <type>work</type>
+    </phoneNumber>
+    <phoneNumber>
+      <value>+1 003 490 8631</value>
+      <primary>false</primary>
+      <type>home</type>
+    </phoneNumber>
+  </phoneNumbers>
+  <addresses>
+    <address>
+      <formatted>
+        Aaren Atp 46045 Locust Street Sioux City, IL 24769
+      </formatted>
+      <streetAddress>46045 Locust Street</streetAddress>
+      <locality>Sioux City</locality>
+      <region>IL</region>
+      <postalCode>24769</postalCode>
+      <type>work</type>
+    </address>
+  </addresses>
+
+  <enterprise:employeeNumber>0</enterprise:employeeNumber>
+  <enterprise:costCenter>100</enterprise:costCenter>
+  <enterprise:organization>Example</enterprise:organization>
+  <enterprise:division>People</enterprise:division>
+  <enterprise:department>Sales</enterprise:department>
+  <enterprise:manager>
+    <managerId>uid=user.1,ou=People,dc=example,dc=com</managerId>
+    <displayName>User One</displayName>
+  </enterprise:manager>
+
+</scim:User>
