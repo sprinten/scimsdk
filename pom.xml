@@ -20,7 +20,7 @@
     <artifactId>scim-parent</artifactId>
     <packaging>pom</packaging>
     <name>UnboundID SCIM SDK Parent</name>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0</version>
     <inceptionYear>2011</inceptionYear>
 
     <properties>
@@ -34,6 +34,24 @@
         <name>UnboundID</name>
         <url>http://www.unboundid.com</url>
     </organization>
+
+    <url>http://www.unboundid.com/labs/projects/simple-cloud-identity-management-scim</url>
+
+    <licenses>
+      <license>
+        <name>GNU General Public License version 2 (GPLv2)</name>
+        <url>http://www.gnu.org/licenses/gpl-2.0.html</url>
+      </license>
+      <license>
+        <name>GNU Lesser General Public License version 2.1 (LGPLv2.1)</name>
+        <url>http://www.gnu.org/licenses/lgpl-2.1.html</url>
+      </license>
+      <license>
+        <name>UnboundID SCIM SDK Free Use License</name>
+        <url>http://www.unboundid.com/labs/projects/simple-cloud-identity-management-scim</url>
+        <comments>This license is available from the UnboundID website.</comments>
+      </license>
+    </licenses>
 
     <modules>
         <module>build-tools</module>
@@ -241,5 +259,10 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <scm>
+      <url>http://code.google.com/p/scimsdk/source/browse</url>
+      <connection>scm:svn:http://scimsdk.googlecode.com/svn/trunk</connection>
+    </scm>
 
 </project>
