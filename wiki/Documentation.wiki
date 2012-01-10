@@ -1,3 +1,3 @@
 = Documentation =
 
-Complete documentation, user guide, et al is in the works and will be published shortly after the new year.
+Complete documentation, user guide, and examples are available in the SCIM-SDK distribution, which can be downloaded from [http://www.unboundid.com/labs/projects/simple-cloud-identity-management-scim].
