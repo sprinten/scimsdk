@@ -1,8 +1,8 @@
-# 
+#
 # UnboundID SCIM Reference Implementation
 # Copyright 2011-2012 UnboundID Corp.
 # All Rights Reserved.
-# 
+#
 
 This package provides a demonstrable SCIM Service Provider and Client example
 that exercises the basic SCIM operations. The following components are included:
@@ -57,7 +57,7 @@ that exercises the basic SCIM operations. The following components are included:
  >$ mvn package
 
  After a successful build, go to the assembled project at
- target/scim-ri-client-1.1.1 and run the example tests:
+ target/scim-ri-client-1.1.2 and run the example tests:
 
  >$ bin/client-test localhost port "cn=directory manager" password
 
