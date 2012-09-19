@@ -1910,7 +1910,12 @@ public abstract class SCIMServerTestCase extends SCIMRITestCase
 
       assertEquals(o.getMethod(), r.getMethod());
       assertEquals(o.getBulkId(), r.getBulkId());
-      assertNotNull(r.getLocation());
+      if (o.getMethod() == BulkOperation.Method.POST ||
+              o.getMethod() == BulkOperation.Method.PUT)
+      {
+        assertNotNull(r.getLocation());
+      }
+
       assertNotNull(r.getStatus());
 
       if (o.getMethod() == BulkOperation.Method.POST)
@@ -2027,11 +2032,11 @@ public abstract class SCIMServerTestCase extends SCIMRITestCase
                                     "/Groups/", testGroup),
         "409");
 
-    // PATCH is not supported.
+    // PATCH a resource that doesn't exist.
     testInvalidBulkOperation(
         BulkOperation.createRequest(BulkOperation.Method.PATCH, null, null,
                                     "/Users/1", testUser),
-        "501");
+        "404");
   }
 
 
