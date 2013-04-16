@@ -104,7 +104,6 @@
                 <executions>
                     <execution>
                         <id>check-main</id>
-                        <phase>process-sources</phase>
                         <goals>
                             <goal>check</goal>
                         </goals>
@@ -115,7 +114,6 @@
                     </execution>
                     <execution>
                         <id>check-test</id>
-                        <phase>process-test-sources</phase>
                         <goals>
                             <goal>check</goal>
                         </goals>
