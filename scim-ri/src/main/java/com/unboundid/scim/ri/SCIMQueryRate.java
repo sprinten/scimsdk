@@ -47,6 +47,9 @@ import com.unboundid.util.ssl.SSLUtil;
 import com.unboundid.util.ssl.TrustAllTrustManager;
 import com.unboundid.util.ssl.TrustStoreTrustManager;
 
+import org.apache.http.HttpException;
+import org.apache.http.HttpRequest;
+import org.apache.http.HttpRequestInterceptor;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.Credentials;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -57,14 +60,15 @@ import org.apache.http.config.SocketConfig;
 import org.apache.http.conn.socket.PlainSocketFactory;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
 import org.apache.http.conn.ssl.SSLSocketFactory;
-import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.DefaultServiceUnavailableRetryStrategy;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.client.StandardHttpRequestRetryHandler;
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
-import org.apache.wink.client.httpclient.ApacheHttpClientConfig;
-import org.apache.wink.client.ClientConfig;
+import org.apache.http.impl.auth.BasicScheme;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
+import org.apache.http.params.BasicHttpParams;
+import org.apache.http.params.CoreConnectionPNames;
+import org.apache.http.params.CoreProtocolPNames;
+import org.apache.http.params.HttpParams;
+import org.apache.http.protocol.HttpContext;
+import org.apache.wink.client.ApacheHttpClientConfig;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.TrustManager;
@@ -114,6 +118,8 @@ import static com.unboundid.util.StaticUtils.getExceptionMessage;
  *   <LI>"-w {password}" or "--authPassword {password}" -- Specifies the
  *       password to use when authenticating using basic auth or a
  *       password-based SASL mechanism.</LI>
+ *   <LI>"--bearerToken {base64 token}" -- Specifies the OAuth2 bearer
+ *       token to use when authenticating using OAuth</LI>
  *   <LI>"--resourceName {resource-name}" -- specifies the name of resources to
  *       be queried.  If this isn't specified, then a default of "User" will
  *       be used.</LI>
@@ -160,6 +166,7 @@ public class SCIMQueryRate
   private IntegerArgument port;
   private StringArgument  authID;
   private StringArgument  authPassword;
+  private StringArgument  bearerToken;
   private StringArgument  contextPath;
   private StringArgument  host;
   private BooleanArgument trustAll;
@@ -351,6 +358,13 @@ public class SCIMQueryRate
     parser.addArgument(authPassword);
 
 
+    bearerToken = new StringArgument(
+            null, "bearerToken", false, 1,
+            INFO_QUERY_TOOL_ARG_PLACEHOLDER_BEARER_TOKEN.get(),
+            INFO_QUERY_TOOL_ARG_DESC_BEARER_TOKEN.get());
+    parser.addArgument(bearerToken);
+
+
     authPasswordFile = new FileArgument(
         'j', "authPasswordFile", false, 1,
         INFO_QUERY_TOOL_ARG_PLACEHOLDER_AUTH_PASSWORD_FILE.get(),
@@ -507,7 +521,8 @@ public class SCIMQueryRate
     parser.addArgument(certificateNickname);
 
     parser.addDependentArgumentSet(authID, authPassword, authPasswordFile);
-    parser.addExclusiveArgumentSet(authPassword, authPasswordFile);
+    parser.addExclusiveArgumentSet(authPassword, authPasswordFile, bearerToken);
+    parser.addExclusiveArgumentSet(authID, bearerToken);
     parser.addExclusiveArgumentSet(keyStorePassword, keyStorePasswordFile);
     parser.addExclusiveArgumentSet(trustStorePassword, trustStorePasswordFile);
     parser.addExclusiveArgumentSet(trustAll, trustStorePath);
@@ -825,7 +840,7 @@ public class SCIMQueryRate
     }
     else if (bearerToken.isPresent())
     {
-      httpClientBuilder.addInterceptorFirst(new HttpRequestInterceptor()
+      httpClient.addRequestInterceptor(new HttpRequestInterceptor()
       {
         @Override
         public void process(final HttpRequest httpRequest,
