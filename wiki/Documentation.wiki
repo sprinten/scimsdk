@@ -32,31 +32,41 @@ The server executable is located at server/tools/in-memory-scim-server. An XML f
 
 The in-memory LDAP server will initially be empty; the –ldifFile option may be used to load an initial set of data from an LDIF file. Some sample user entries are provided in server/ldif/spec-compact.ldif. To start the server with the default configuration, use the following commands:
 
+{{{
 $> cd server
 
 $> tools/in-memory-scim-server –resourceMappingFile config/resources.xml –ldifFile ldif/spec-compact.ldif
+}}}
 
 When the server starts successfully, you should see the following:
 
+{{{
 Listening for HTTP client connections on port 8080 and LDAP client connections on port 1389.
+}}}
 
 By default, the server will start listening for HTTP requests on port 8080 and LDAP requests on port 1389. Ports can be changed with the –port and –ldapPort options respectively. Use the –help option for a complete list of options.
 
 == Testing and Verification ==
 
- HTTP Basic authentication is used to authenticate SCIM clients. The credentials are mapped from a SASL Plain Bind request to the in-memory LDAP server. The ‘uid’ and ‘userPassword’ attributes of any user entry can be used for authentication.
+HTTP Basic authentication is used to authenticate SCIM clients. The credentials are mapped from a SASL Plain Bind request to the in-memory LDAP server. The ‘uid’ and ‘userPassword’ attributes of any user entry can be used for authentication.
 
 If cURL is available, you can retrieve a list of users via the /Users endpoint in JSON format:
 
- $> curl http://localhost:8080/Users –user bjensen:password
+{{{
+$> curl http://localhost:8080/Users –user bjensen:password
+}}}
 
- The server generates resource IDs from the DN of the mapped entry. Thus, you can use the DN to retrieve a specific user:
+The server generates resource IDs from the DN of the mapped entry. Thus, you can use the DN to retrieve a specific user:
 
+{{{
 $> curl http://localhost:8080/Users/uid=jsmith,dc=example,dc=com –user bjensen:password
+}}}
 
 Similarly, you can create a new resource from a file containing JSON formatted content. For example, create a new Group with the file ‘group.json’ using the POST method as follows:
 
+{{{
 $> curl http://localhost:8080/Groups –user bjensen:password -X POST -d @group.json -H Content-Type:application/json
+}}}
 
 Since all data is backed by the in-memory LDAP server, resources created or modified via the SCIM REST protocol will be lost when the server is restarted. To make persistent changes, make the modifications in the LDIF file, specified by the –ldifFile argument, when starting the server.
 
@@ -79,7 +89,9 @@ The `<attribute>` element defines a SCIM attribute for a resource. Unless otherw
 
 The XML schema file, server/config/resources.xsd, describes the elements configuration file in detail. Use this file with xmllint to verify the resources.xml configuration file as follows:
 
+{{{
 $> xmllint –noout –schema config/resources.xsd config/resources.xml
+}}}
 
 == Attribute Value Mapping ==
 
@@ -302,6 +314,8 @@ If you need to provide your own implementations of any of the ResourceMapper, Tr
 
 This library is already present in the SCIM Reference Implementation server (under the /lib directory). Simply extend the class for which you need custom logic, compile it into a jar, and drop it into the /lib directory with the other jars. Then, edit the resources.xml file to reference your class. For example:
 
-{{{<derivation javaClass="com.unboundid.ExampleDerivedAttribute"/>}}}
+{{{
+<derivation javaClass="com.unboundid.ExampleDerivedAttribute"/>
+}}}
 
 and then restart the server.
