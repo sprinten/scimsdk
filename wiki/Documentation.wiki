@@ -35,7 +35,7 @@ The in-memory LDAP server will initially be empty; the –ldifFile option may be
 {{{
 $> cd server
 
-$> tools/in-memory-scim-server –resourceMappingFile config/resources.xml –ldifFile ldif/spec-compact.ldif
+$> tools/in-memory-scim-server –-resourceMappingFile config/resources.xml –-ldifFile ldif/spec-compat.ldif
 }}}
 
 When the server starts successfully, you should see the following:
