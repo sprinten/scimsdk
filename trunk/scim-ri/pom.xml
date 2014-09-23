@@ -19,7 +19,7 @@
     <parent>
         <artifactId>scim-parent</artifactId>
         <groupId>com.unboundid.product.scim</groupId>
-        <version>1.8.0-SNAPSHOT</version>
+        <version>1.8.1-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>scim-ri</artifactId>
@@ -29,7 +29,7 @@
     <properties>
         <main.basedir>${project.basedir}/..</main.basedir>
         <messages.dir>${project.build.genSourceDirectory}/messages</messages.dir>
-	<scimsdk.version>1.8.0</scimsdk.version>
+	<scimsdk.version>1.8.1</scimsdk.version>
     </properties>
 
     <build>
